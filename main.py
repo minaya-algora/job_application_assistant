@@ -70,7 +70,7 @@ st.sidebar.title("Settings")
 st.sidebar.subheader("Document Search")
 
 file_search_active = st.sidebar.checkbox(
-    "Enable Document Search (Recommended)", 
+    "Enable Search in Minaya's Professional Docs", 
     value=st.session_state.use_file_search, 
     key="file_search_toggle"
 )
@@ -86,9 +86,10 @@ if st.sidebar.button("Clear Conversation"):
 
 with st.sidebar.expander("Example Questions"):
     st.markdown("""
-    - What are Minaya's key motivations?
-    - Describe Minaya's experience with AI-driven marketing.
-    - What skills are highlighted in Minaya's resume?
+    - What experience does Minaya have with automation tools like Zapier, Make, or n8n?
+    - What does Minaya's ideal work environment look like?
+    - What makes Minaya stand out from other marketing professionals?
+    - What personality traits does Minaya have?
     """)
 
 st.sidebar.markdown("---")
