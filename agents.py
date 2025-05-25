@@ -1,7 +1,7 @@
 # agents.py
 import os
-import openai
-from typing import List, Dict, Any, Optional, Union, Callable, Awaitable
+from openai import OpenAI  # Note: import this way instead of import openai
+from typing import List, Dict, Any, Optional, Union
 import streamlit as st
 
 class WebSearchTool:
@@ -17,10 +17,9 @@ class WebSearchTool:
         In a production environment, you would integrate with a real search API.
         """
         # Initialize OpenAI client with project API key
-        from openai import OpenAI
         client = OpenAI(
             api_key=st.secrets["OPENAI_API_KEY"],
-            base_url="https://api.openai.com/v1"
+            base_url="https://api.openai.com/v1",
         )
         
         try:
@@ -52,10 +51,9 @@ class FileSearchTool:
         In a production environment, this would connect to your actual vector database.
         """
         # Initialize OpenAI client with project API key
-        from openai import OpenAI
         client = OpenAI(
             api_key=st.secrets["OPENAI_API_KEY"],
-            base_url="https://api.openai.com/v1"
+            base_url="https://api.openai.com/v1",
         )
         
         try:
@@ -86,10 +84,9 @@ class Agent:
         Process the user message and use tools as needed.
         """
         # Initialize OpenAI client with project API key
-        from openai import OpenAI
         client = OpenAI(
             api_key=st.secrets["OPENAI_API_KEY"],
-            base_url="https://api.openai.com/v1"
+            base_url="https://api.openai.com/v1",
         )
         
         # Prepare tools description for the system message
@@ -163,13 +160,6 @@ class Runner:
     async def run(agent: Agent, prompt: str):
         """
         Run an agent with the given prompt and return the result.
-        
-        Args:
-            agent: The agent to run
-            prompt: The input prompt for the agent
-            
-        Returns:
-            An object with the final output from the agent
         """
         result = await agent.run(prompt)
         
