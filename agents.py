@@ -16,8 +16,8 @@ class WebSearchTool:
         Simulate web search functionality.
         In a production environment, you would integrate with a real search API.
         """
-        # Get the OpenAI client with the already-configured API key
-        client = openai.OpenAI()  # This will use the globally set API key
+        # Create OpenAI client with API key from Streamlit secrets
+        client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
         
         try:
             # Use OpenAI to generate a simulated web search result
@@ -47,8 +47,8 @@ class FileSearchTool:
         Search through vector store for relevant document snippets.
         In a production environment, this would connect to your actual vector database.
         """
-        # Get the OpenAI client with the already-configured API key
-        client = openai.OpenAI()  # This will use the globally set API key
+        # Create OpenAI client with API key from Streamlit secrets
+        client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
         
         try:
             # This is a simplified simulation of vector store retrieval
@@ -84,8 +84,8 @@ class Agent:
         Returns:
             A dictionary with the agent's final output
         """
-        # Get the OpenAI client with the already-configured API key
-        client = openai.OpenAI()  # This will use the globally set API key
+        # Create OpenAI client with API key from Streamlit secrets
+        client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
         
         # Prepare tools description for the system message
         tools_description = ""
