@@ -34,8 +34,6 @@ class FileSearchTool:
         client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
         vector_store_id = self.vector_store_ids[0] 
 
-        # Define a temporary assistant for each run. 
-        # For production, consider creating one assistant and reusing its ID.
         assistant_id_to_use = None
         thread_id_to_use = None
 
@@ -49,7 +47,7 @@ class FileSearchTool:
             )
 
             assistant = client.beta.assistants.create(
-                name="Minaya Doc Retriever Tool", # Slightly more specific name
+                name="Minaya Doc Retriever Tool", 
                 instructions=assistant_instructions,
                 model="gpt-4o", 
                 tools=[{"type": "file_search"}],
@@ -72,7 +70,7 @@ class FileSearchTool:
                 assistant_id=assistant.id,
             )
 
-            response_content_str = "No text response extracted from assistant." # Default
+            response_content_str = "No text response extracted from assistant." 
             if run.status == 'completed':
                 messages_response = client.beta.threads.messages.list(thread_id=thread.id, order="asc")
                 response_parts = []
@@ -95,7 +93,6 @@ class FileSearchTool:
             print(f"Exception during FileSearchTool.run: {e}")
             return f"Error during file search with Assistant API: {str(e)}"
         finally:
-            # Cleanup temporary resources
             if thread_id_to_use:
                 try:
                     print(f"Attempting to delete thread: {thread_id_to_use}")
@@ -137,13 +134,13 @@ class Agent:
         YOUR PROCESS FOR RESPONDING TO QUESTIONS ABOUT MINAYA:
         1.  **Analyze the User's Question about Minaya.**
         2.  **Plan Tool Usage:** You MUST use the '{file_search_tool.name}' tool for any informational request about Minaya.
-            State your plan clearly using this exact format: `TOOL_USE: I will use [{file_search_tool.name}] to find information about [specific query for the tool].` (Replace brackets).
+            State your plan clearly using this exact format: `TOOL_USE: I will use [{file_search_tool.name}] to find information about [specific query for the tool].` (Ensure the tool name is exactly '{file_search_tool.name}').
         3.  **Generate Response AFTER Tool Use:**
             *   The '{file_search_tool.name}' tool will provide a direct answer based on Minaya's documents.
             *   Your final response about Minaya should present this information clearly. 
             *   If the tool indicates information is not found, relay that message as per your core instructions. Do NOT invent information.
 
-        If the user's message is not an informational question about Minaya (e.g., a simple greeting like 'hello'), you can respond directly based on your persona and instructions without using a tool.
+        If the user's message is not an informational question about Minaya (e.g., a simple greeting like 'hello'), you can respond directly.
         However, for any request that requires specific information about Minaya, you must follow the tool usage plan.
 
         Begin by stating your plan or providing an immediate answer if no tool is needed.
@@ -156,62 +153,94 @@ class Agent:
             response1 = client.chat.completions.create(
                 model="gpt-4o", 
                 messages=messages,
-                temperature=0.2, 
+                temperature=0.05, 
                 max_tokens=300 
             )
             agent_response_phase1 = response1.choices[0].message.content
             messages.append({"role": "assistant", "content": agent_response_phase1})
 
-            tool_marker = "TOOL_USE:"
-            if tool_marker in agent_response_phase1: 
-                try:
-                    pattern = re.compile(r"TOOL_USE: I will use \[(?P<tool_name>[^\]]+)\] to find information about \[(?P<query>[^\]]+)\]\.")
-                    match = pattern.search(agent_response_phase1)
-                    
-                    if match and match.group("tool_name").strip().lower() == file_search_tool.name.lower():
-                        query_for_tool = match.group("query").strip()
-                        
-                        print(f"Agent plans to use tool: {file_search_tool.name} (extracted: '{match.group('tool_name').strip()}') with query: '{query_for_tool}'")
-                        tool_output = await file_search_tool.run(query_for_tool)
-                        tool_results_text = f"--- Information retrieved by {file_search_tool.name} for query '{query_for_tool}' ---\n{tool_output}\n--- End of Information ---"
-                        
-                        final_prompt_messages = messages.copy()
-                        final_prompt_messages.append({"role": "user", "content": tool_results_text}) 
-                        
-                        final_instruction = (
-                            f"The '{file_search_tool.name}' tool provided the following information based on Minaya's documents:\n{tool_results_text}\n\n"
-                            f"Present this information as your final answer to the original user question: '{user_message}'. "
-                            f"Ensure your response aligns with your core instructions (persona, tone, and how to handle missing information if the tool indicated so)."
-                        )
-                        final_prompt_messages.append({"role": "system", "content": final_instruction})
-                        
-                        response2 = client.chat.completions.create(
-                            model="gpt-4o",
-                            messages=final_prompt_messages,
-                            temperature=0.3,
-                            max_tokens=700
-                        )
-                        return {"output": response2.choices[0].message.content}
-                    else:
-                        extracted_tool_name_debug = "Not extracted"
-                        if match: # Check if match object exists before trying to access group
-                             extracted_tool_name_debug = match.group("tool_name").strip()
-                        else: # If no regex match at all for the pattern
-                            print(f"Debug: Regex pattern did not match in plan: '{agent_response_phase1}'")
+            print(f"--- Agent Phase 1 Response ---") 
+            print(agent_response_phase1)             
+            print(f"--- End of Agent Phase 1 Response ---") 
 
-                        print(f"Debug: Tool name mismatch or parsing issue. Expected: '{file_search_tool.name}', Got from regex: '{extracted_tool_name_debug}' from plan: '{agent_response_phase1}'")
-                        return {"output": agent_response_phase1 + "\n\n(Note: I planned to use the file search tool but couldn't parse the details correctly or referred to an incorrect tool. Please try rephrasing.)"}
+            tool_marker = "TOOL_USE:"
+            expected_tool_invocation_start = f"I will use [{file_search_tool.name}]" 
+
+            if tool_marker.lower() in agent_response_phase1.lower() and \
+               expected_tool_invocation_start.lower() in agent_response_phase1.lower().replace(" ", ""): # More robust check for invocation
+                
+                print(f"Debug: Found tool marker and expected tool invocation start pattern.") 
+                
+                try:
+                    query_marker = "to find information about ["
+                    # Ensure case-insensitivity for finding the query marker
+                    temp_agent_response_lower = agent_response_phase1.lower()
+                    query_start_index_search = temp_agent_response_lower.find(query_marker.lower())
+
+                    if query_start_index_search != -1:
+                        query_start_index_actual = query_start_index_search + len(query_marker)
+                        query_end_index_actual = agent_response_phase1.find("]", query_start_index_actual)
+
+                        if query_end_index_actual != -1:
+                            query_for_tool = agent_response_phase1[query_start_index_actual:query_end_index_actual].strip()
+                            
+                            # Extract tool name again just to be absolutely sure it matches
+                            # Find first '[' after "TOOL_USE: I will use "
+                            tool_name_start_phrase = "i will use ["
+                            tool_name_start_search = temp_agent_response_lower.find(tool_name_start_phrase)
+                            extracted_tool_name = "unknown_tool" # Default
+                            
+                            if tool_name_start_search != -1:
+                                actual_tool_name_start_index = tool_name_start_search + len(tool_name_start_phrase)
+                                actual_tool_name_end_index = agent_response_phase1.find("]", actual_tool_name_start_index)
+                                if actual_tool_name_end_index != -1:
+                                    extracted_tool_name = agent_response_phase1[actual_tool_name_start_index:actual_tool_name_end_index].strip()
+
+                            print(f"--- Splitter Method Details ---") 
+                            print(f"Extracted tool_name by splitter: '{extracted_tool_name}'") 
+                            print(f"Extracted query by splitter: '{query_for_tool}'")       
+                            print(f"--- End of Splitter Method Details ---")   
+
+                            if extracted_tool_name.lower() == file_search_tool.name.lower() and query_for_tool:
+                                print(f"Agent plans to use tool: {file_search_tool.name} with query: '{query_for_tool}'") 
+                                tool_output = await file_search_tool.run(query_for_tool)
+                                tool_results_text = f"--- Information retrieved by {file_search_tool.name} for query '{query_for_tool}' ---\n{tool_output}\n--- End of Information ---"
+                                
+                                final_prompt_messages = messages.copy()
+                                final_prompt_messages.append({"role": "user", "content": tool_results_text}) 
+                                
+                                final_instruction = (
+                                    f"The '{file_search_tool.name}' tool provided the following information based on Minaya's documents:\n{tool_results_text}\n\n"
+                                    f"Present this information as your final answer to the original user question: '{user_message}'. "
+                                    f"Ensure your response aligns with your core instructions (persona, tone, and how to handle missing information if the tool indicated so)."
+                                )
+                                final_prompt_messages.append({"role": "system", "content": final_instruction})
+                                
+                                response2 = client.chat.completions.create(
+                                    model="gpt-4o",
+                                    messages=final_prompt_messages,
+                                    temperature=0.3,
+                                    max_tokens=700
+                                )
+                                return {"output": response2.choices[0].message.content}
+                            else:
+                                print(f"Debug: Tool name or query extraction failed with splitter. Extracted Tool: '{extracted_tool_name}', Expected Tool: '{file_search_tool.name.lower()}', Query: '{query_for_tool}'") 
+                                return {"output": agent_response_phase1 + "\n\n(Note: Tool name or query was not correctly identified in the plan. Please try rephrasing.)"}
+                        else:
+                            print(f"Debug: Could not find closing ']' for query in plan: '{agent_response_phase1}'") 
+                            return {"output": agent_response_phase1 + "\n\n(Note: The query part of the plan was not correctly formatted. Please try rephrasing.)"}
+                    else:
+                        print(f"Debug: Query marker '{query_marker}' not found in plan: '{agent_response_phase1}' after finding tool marker and invocation start.") 
+                        return {"output": agent_response_phase1 + "\n\n(Note: The plan to find information was not clearly stated. Please try rephrasing.)"}
 
                 except Exception as e:
-                    print(f"Error during tool processing: {str(e)}")
-                    return {"output": f"Error during tool processing: {str(e)}\nOriginal plan: {agent_response_phase1}"}
+                    print(f"Error during tool processing (splitter logic): {str(e)}") 
+                    return {"output": f"Error during tool processing logic: {str(e)}\nOriginal plan: {agent_response_phase1}"}
             else:
-                # This case means "TOOL_USE:" was not found in the agent's initial response.
-                # It might be a direct answer (e.g., for a greeting) or a failure to plan.
-                print(f"Debug: Agent did not plan to use a tool. Initial response: '{agent_response_phase1}'")
+                print(f"Debug: Marker '{tool_marker}' or invocation start '{expected_tool_invocation_start}' not found. Agent may not have planned to use a tool. Initial response: '{agent_response_phase1}'") 
                 return {"output": agent_response_phase1} 
         except Exception as e:
-            print(f"Error in agent run: {str(e)}")
+            print(f"Error in agent run (main try block): {str(e)}") 
             return {"output": f"Error in agent run: {str(e)}"}
 
 
