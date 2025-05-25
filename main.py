@@ -1,12 +1,12 @@
 import streamlit as st
 import os
 import asyncio
-from agents import Agent, Runner, WebSearchTool, FileSearchTool
+from agents import Agent, Runner, WebSearchTool, FileSearchTool # Your custom agent modules
 from dotenv import load_dotenv
-import openai
+# import openai # Not strictly needed in main.py if agents.py handles client init
 
 # Streamlit UI Configuration - MUST BE THE FIRST STREAMLIT COMMAND
-st.set_page_config(page_title="Minaya's SmarterX Application Assistant", layout="wide")
+st.set_page_config(page_title="Minaya's SmarterX Application Assistant", layout="wide") # This is the one and only call
 
 # --- TEMPORARY DEBUG SECTION ---
 # This will print to your Streamlit app's UI when deployed.
@@ -23,13 +23,16 @@ else:
 load_dotenv(override=True)
 
 # Get API keys (prioritize Streamlit secrets if available)
-if "OPENAI_API_KEY" in st.secrets:
-    OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
-    vector_store_id = st.secrets.get("vector_store_id", "")
+# Note: OPENAI_API_KEY variable here isn't directly used if agents.py re-fetches from st.secrets
+# vector_store_id is used in create_research_assistant
+current_vector_store_id = "" # Initialize
+if "OPENAI_API_KEY" in st.secrets: # This check is fine for knowing if the secret exists
+    # OPENAI_API_KEY_main = st.secrets["OPENAI_API_KEY"] # Renamed to avoid confusion, not used by agents
+    current_vector_store_id = st.secrets.get("vector_store_id", "")
 else:
     # Fallback to environment variables for local development
-    OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
-    vector_store_id = os.environ.get("vector_store_id", "")
+    # OPENAI_API_KEY_main = os.environ.get("OPENAI_API_KEY", "") # Renamed, not used by agents
+    current_vector_store_id = os.environ.get("vector_store_id", "")
 
 # Initialize session state for chat history if it doesn't exist
 if "messages" not in st.session_state:
@@ -49,18 +52,21 @@ def get_agent_instructions():
 # Function to create agent with selected tools
 def create_research_assistant():
     tools = []
+
+    
     
     if st.session_state.use_web_search:
-        tools.append(WebSearchTool())
+        tools.append(WebSearchTool()) # Assumes WebSearchTool uses st.secrets["OPENAI_API_KEY"]
         
     if st.session_state.use_file_search:
+        # Pass the vector_store_id fetched earlier
         tools.append(FileSearchTool(
             max_num_results=3,
-            vector_store_ids=[vector_store_id],
+            vector_store_ids=[current_vector_store_id] if current_vector_store_id else [],
         ))
     
     return Agent(
-        name="Useless Assistant",
+        name="Minaya's Assistant"
         instructions=get_agent_instructions(),
         tools=tools,
     )
@@ -77,8 +83,7 @@ async def get_research_response(question, history):
     result = await Runner.run(research_assistant, prompt)
     return result.final_output
 
-# Streamlit UI
-st.set_page_config(page_title="Research Assistant", layout="wide")
+# Streamlit UI starts here (after set_page_config and debug)
 st.title("🤖 Minaya's SmarterX Application Assistant")
 st.write("Curious about my career goals, my specific expertise in this or that tool, or how I'd fit into your team? Ask me anything about my experience, approach, or potential contributions. I'll do my best to provide the info you need and help you assess my fit for your organization. Please note I'm in Beta and I sometimes hallucinate. Take my responses with a grain of salt!")
 
@@ -105,7 +110,7 @@ if not st.session_state.use_web_search and not st.session_state.use_file_search:
 st.sidebar.subheader("Conversation")
 if st.sidebar.button("Clear Conversation"):
     st.session_state.messages = []
-    st.experimental_rerun()
+    st.rerun() # Changed from experimental_rerun to rerun
 
 # Display some helpful examples
 with st.sidebar.expander("Example Questions"):
