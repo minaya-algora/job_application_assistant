@@ -4,16 +4,15 @@ from openai import OpenAI
 from typing import List, Dict, Any, Optional, Union
 import streamlit as st
 import re 
-import time 
+import time # For polling Assistant run status
 
-# --- FileSearchTool class remains the same as the last complete version ---
 class FileSearchTool:
     """
     A tool that uses OpenAI Assistants API with file_search (retrieval)
     to answer questions based on documents in a specific Vector Store.
     """
     
-    def __init__(self, max_num_results: int = 3, vector_store_ids: List[str] = None): 
+    def __init__(self, max_num_results: int = 3, vector_store_ids: List[str] = None): # max_num_results not directly used by Assistant API in this way
         self.name = "file_search"
         self.description = (
             "Use this tool to search Minaya Algora's professional documents (Comprehensive Professional Profile, "
@@ -26,6 +25,9 @@ class FileSearchTool:
 
 
     async def run(self, query: str) -> str:
+        """
+        Actually search through the specified OpenAI Vector Store using an Assistant.
+        """
         if not self.vector_store_ids or not self.vector_store_ids[0]:
             return "Error: Vector Store ID is not configured for FileSearchTool."
 
@@ -62,7 +64,6 @@ class FileSearchTool:
                 content=query
             )
             
-            # --- VERY EARLY PRINT IN FileSearchTool.run ---
             print(f"LOG_CHECK: FileSearchTool.run - Running Assistant {assistant_id_to_use} on Thread {thread_id_to_use} for query: '{query}'")
             run = client.beta.threads.runs.create_and_poll(
                 thread_id=thread.id,
@@ -84,14 +85,12 @@ class FileSearchTool:
                     response_content_str = "The assistant processed the request but provided no textual content."
             else:
                 error_message = run.last_error.message if run.last_error else "No specific error details."
-                # --- PRINT ERROR FROM ASSISTANT RUN ---
                 print(f"LOG_CHECK: FileSearchTool.run - Assistant run not completed. Status: {run.status}, Error: {error_message}")
                 response_content_str = f"File search failed. Assistant run status: {run.status}. Error: {error_message}"
             
             return response_content_str
 
         except Exception as e:
-            # --- PRINT EXCEPTION IN FileSearchTool.run ---
             print(f"LOG_CHECK: FileSearchTool.run - Exception: {e}")
             return f"Error during file search with Assistant API: {str(e)}"
         finally:
@@ -118,9 +117,7 @@ class Agent:
         self.tools = tools or []
         
     async def run(self, user_message: str) -> Dict[str, Any]:
-        # --- VERY FIRST PRINT STATEMENT IN Agent.run ---
         print(f"LOG_CHECK: Agent.run CALLED with user_message: '{user_message}'")
-        # --- END OF VERY FIRST PRINT ---
 
         client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
         
@@ -170,34 +167,39 @@ class Agent:
             print(f"LOG_CHECK: --- End of Agent Phase 1 Response ---") 
 
             tool_marker = "TOOL_USE:"
-            expected_tool_invocation_start = f"I will use [{file_search_tool.name}]" 
+            # Construct the expected patterns carefully, ensuring file_search_tool.name is correct ("file_search")
+            expected_tool_name_in_brackets_lower = f"[{file_search_tool.name.lower()}]" # e.g., "[file_search]"
+            expected_tool_invocation_start_pattern_lower = f"i will use {expected_tool_name_in_brackets_lower}" # e.g., "i will use [file_search]"
+            
+            agent_response_lower = agent_response_phase1.lower()
 
-            if tool_marker.lower() in agent_response_phase1.lower() and \
-               expected_tool_invocation_start.lower() in agent_response_phase1.lower().replace(" ", ""):
+            if tool_marker.lower() in agent_response_lower and \
+               expected_tool_invocation_start_pattern_lower in agent_response_lower:
                 
-                print(f"LOG_CHECK: Agent.run - Found tool marker and expected tool invocation start pattern.") 
+                print(f"LOG_CHECK: Agent.run - Found tool marker AND expected tool invocation start pattern.") 
                 
                 try:
-                    query_marker = "to find information about ["
-                    temp_agent_response_lower = agent_response_phase1.lower()
-                    query_start_index_search = temp_agent_response_lower.find(query_marker.lower())
+                    query_marker_lower = "to find information about [" # Use lowercase for searching
+                    query_start_index_search = agent_response_lower.find(query_marker_lower)
 
                     if query_start_index_search != -1:
-                        query_start_index_actual = query_start_index_search + len(query_marker)
-                        query_end_index_actual = agent_response_phase1.find("]", query_start_index_actual)
+                        # Use original casing for slicing, but index from lowercased search
+                        query_start_index_actual = query_start_index_search + len(query_marker_lower)
+                        # Find the closing bracket in the original cased string
+                        query_end_index_actual = agent_response_phase1.find("]", query_start_index_actual) 
 
                         if query_end_index_actual != -1:
                             query_for_tool = agent_response_phase1[query_start_index_actual:query_end_index_actual].strip()
                             
-                            tool_name_start_phrase = "i will use ["
-                            tool_name_start_search = temp_agent_response_lower.find(tool_name_start_phrase)
-                            extracted_tool_name = "unknown_tool" 
+                            # Re-confirm extracted tool name from the original cased string based on found pattern
+                            tool_name_phrase_search_start = agent_response_lower.find(expected_tool_invocation_start_pattern_lower)
+                            start_of_bracket_in_original_case = tool_name_phrase_search_start + len("i will use ") # length of "i will use " is 11
+                            end_of_bracket_in_original_case = agent_response_phase1.find("]", start_of_bracket_in_original_case)
                             
-                            if tool_name_start_search != -1:
-                                actual_tool_name_start_index = tool_name_start_search + len(tool_name_start_phrase)
-                                actual_tool_name_end_index = agent_response_phase1.find("]", actual_tool_name_start_index)
-                                if actual_tool_name_end_index != -1:
-                                    extracted_tool_name = agent_response_phase1[actual_tool_name_start_index:actual_tool_name_end_index].strip()
+                            extracted_tool_name = "unknown_tool" # Default
+                            if end_of_bracket_in_original_case != -1:
+                                extracted_tool_name = agent_response_phase1[start_of_bracket_in_original_case + 1 : end_of_bracket_in_original_case].strip()
+
 
                             print(f"LOG_CHECK: --- Splitter Method Details ---") 
                             print(f"LOG_CHECK: Extracted tool_name by splitter: '{extracted_tool_name}'") 
@@ -209,7 +211,7 @@ class Agent:
                                 tool_output = await file_search_tool.run(query_for_tool)
                                 tool_results_text = f"--- Information retrieved by {file_search_tool.name} for query '{query_for_tool}' ---\n{tool_output}\n--- End of Information ---"
                                 
-                                print(f"LOG_CHECK: Agent.run - Tool output received:\n{tool_output[:200]}...") # Log beginning of tool output
+                                print(f"LOG_CHECK: Agent.run - Tool output received:\n{tool_output[:200]}...") 
 
                                 final_prompt_messages = messages.copy()
                                 final_prompt_messages.append({"role": "user", "content": tool_results_text}) 
@@ -236,21 +238,20 @@ class Agent:
                             print(f"LOG_CHECK: Agent.run - Debug: Could not find closing ']' for query in plan: '{agent_response_phase1}'") 
                             return {"output": agent_response_phase1 + "\n\n(Note: The query part of the plan was not correctly formatted. Please try rephrasing.)"}
                     else:
-                        print(f"LOG_CHECK: Agent.run - Debug: Query marker '{query_marker}' not found in plan: '{agent_response_phase1}' after finding tool marker and invocation start.") 
+                        print(f"LOG_CHECK: Agent.run - Debug: Query marker '{query_marker_lower}' not found in plan: '{agent_response_lower}' after finding tool marker and invocation start.") 
                         return {"output": agent_response_phase1 + "\n\n(Note: The plan to find information was not clearly stated. Please try rephrasing.)"}
 
                 except Exception as e:
                     print(f"LOG_CHECK: Agent.run - Error during tool processing (splitter logic): {str(e)}") 
                     return {"output": f"Error during tool processing logic: {str(e)}\nOriginal plan: {agent_response_phase1}"}
             else:
-                print(f"LOG_CHECK: Agent.run - Debug: Marker '{tool_marker}' or invocation start '{expected_tool_invocation_start}' not found. Agent may not have planned to use a tool. Initial response: '{agent_response_phase1}'") 
+                print(f"LOG_CHECK: Agent.run - Debug: Marker '{tool_marker.lower()}' or pattern '{expected_tool_invocation_start_pattern_lower}' not found in agent response (lower): '{agent_response_lower}'. Agent may not have planned to use a tool.") 
                 return {"output": agent_response_phase1} 
         except Exception as e:
             print(f"LOG_CHECK: Agent.run - Error in agent run (main try block): {str(e)}") 
             return {"output": f"Error in agent run: {str(e)}"}
 
 
-# --- Runner class remains the same ---
 class Runner:
     @staticmethod
     async def run(agent: Agent, prompt: str):
