@@ -16,8 +16,12 @@ class WebSearchTool:
         Simulate web search functionality.
         In a production environment, you would integrate with a real search API.
         """
-        # Create OpenAI client with API key from Streamlit secrets
-        client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+        # Initialize OpenAI client with project API key
+        from openai import OpenAI
+        client = OpenAI(
+            api_key=st.secrets["OPENAI_API_KEY"],
+            base_url="https://api.openai.com/v1"
+        )
         
         try:
             # Use OpenAI to generate a simulated web search result
@@ -47,12 +51,15 @@ class FileSearchTool:
         Search through vector store for relevant document snippets.
         In a production environment, this would connect to your actual vector database.
         """
-        # Create OpenAI client with API key from Streamlit secrets
-        client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+        # Initialize OpenAI client with project API key
+        from openai import OpenAI
+        client = OpenAI(
+            api_key=st.secrets["OPENAI_API_KEY"],
+            base_url="https://api.openai.com/v1"
+        )
         
         try:
             # This is a simplified simulation of vector store retrieval
-            # In a real implementation, you would query your vector database
             store_ids_str = ", ".join(self.vector_store_ids)
             response = client.chat.completions.create(
                 model="gpt-4o",
@@ -77,15 +84,13 @@ class Agent:
     async def run(self, message: str) -> Dict[str, Any]:
         """
         Process the user message and use tools as needed.
-        
-        Args:
-            message: The user's input message
-            
-        Returns:
-            A dictionary with the agent's final output
         """
-        # Create OpenAI client with API key from Streamlit secrets
-        client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+        # Initialize OpenAI client with project API key
+        from openai import OpenAI
+        client = OpenAI(
+            api_key=st.secrets["OPENAI_API_KEY"],
+            base_url="https://api.openai.com/v1"
+        )
         
         # Prepare tools description for the system message
         tools_description = ""
