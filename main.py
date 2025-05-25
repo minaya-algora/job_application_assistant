@@ -32,7 +32,7 @@ def create_research_assistant():
     if st.session_state.use_file_search:
         tools.append(FileSearchTool(
             max_num_results=3,
-            vector_store_ids=[current_vector_store_id] if current_vector_store_id else [],
+            vector_store_ids=[vector_store_id],
         ))
     
     return Agent(
@@ -70,7 +70,7 @@ st.sidebar.title("Settings")
 st.sidebar.subheader("Document Search")
 
 file_search_active = st.sidebar.checkbox(
-    "Enable Search in Minaya's Professional Docs", 
+    "Enable Search in Minaya's Professional Documents", 
     value=st.session_state.use_file_search, 
     key="file_search_toggle"
 )
@@ -86,10 +86,9 @@ if st.sidebar.button("Clear Conversation"):
 
 with st.sidebar.expander("Example Questions"):
     st.markdown("""
-    - What experience does Minaya have with automation tools like Zapier, Make, or n8n?
-    - What does Minaya's ideal work environment look like?
-    - What makes Minaya stand out from other marketing professionals?
-    - What personality traits does Minaya have?
+    - What are Minaya's key motivations?
+    - Describe Minaya's experience with AI-driven marketing.
+    - What skills are highlighted in Minaya's resume?
     """)
 
 st.sidebar.markdown("---")
