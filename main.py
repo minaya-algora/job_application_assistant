@@ -8,9 +8,6 @@ import openai
 # Streamlit UI Configuration - MUST BE THE FIRST STREAMLIT COMMAND
 st.set_page_config(page_title="Minaya's SmarterX Application Assistant", layout="wide")
 
-# Load environment variables for local development
-load_dotenv(override=True)
-
 # --- TEMPORARY DEBUG SECTION ---
 # This will print to your Streamlit app's UI when deployed.
 # REMEMBER TO REMOVE THIS AFTER DEBUGGING.
@@ -21,6 +18,9 @@ if "OPENAI_API_KEY" in st.secrets:
 else:
     st.write("Debug: OPENAI_API_KEY not found in st.secrets!")
 # --- END OF TEMPORARY DEBUG SECTION ---
+
+# Load environment variables for local development
+load_dotenv(override=True)
 
 # Get API keys (prioritize Streamlit secrets if available)
 if "OPENAI_API_KEY" in st.secrets:
