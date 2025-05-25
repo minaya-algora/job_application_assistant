@@ -5,6 +5,9 @@ from agents import Agent, Runner, WebSearchTool, FileSearchTool
 from dotenv import load_dotenv
 import openai
 
+# Streamlit UI Configuration - MUST BE THE FIRST STREAMLIT COMMAND
+st.set_page_config(page_title="Minaya's SmarterX Application Assistant", layout="wide")
+
 # Load environment variables for local development
 load_dotenv(override=True)
 
