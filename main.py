@@ -107,7 +107,7 @@ with st.sidebar.expander("Example Questions"):
 
 # Footer
 st.sidebar.markdown("---")
-st.sidebar.markdown("❤️ Made by Minaya Algora")
+st.sidebar.markdown("🖤 Made by Minaya Algora")
 
 # Display chat history
 for message in st.session_state.messages:
