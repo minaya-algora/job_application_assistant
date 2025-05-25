@@ -138,7 +138,7 @@ class Agent:
         YOUR PROCESS FOR RESPONDING TO QUESTIONS ABOUT MINAYA:
         1. Analyze the User's Question about Minaya.
         2. Plan Tool Usage: You MUST use the '{file_search_tool.name}' tool for any informational request about Minaya.
-           State your plan clearly using this exact format: `TOOL_USE: I will use [{file_search_tool.name}] to find information about [specific query for the tool].` (Ensure the tool name is exactly '{file_search_tool.name}').
+           State your plan clearly using this exact format: `TOOL_USE: I will use [{file_search_tool.name}] to find information about [specific query for the tool].` (Ensure the tool name is exactly '{file_search_tool.name}' and the query is enclosed in brackets).
         3. Generate Response AFTER Tool Use:
            * The '{file_search_tool.name}' tool will provide a direct answer based on Minaya's documents.
            * Your final response about Minaya should present this information clearly. 
@@ -167,9 +167,8 @@ class Agent:
             print(f"LOG_CHECK: --- End of Agent Phase 1 Response ---") 
 
             tool_marker = "TOOL_USE:"
-            # Construct the expected patterns carefully, ensuring file_search_tool.name is correct ("file_search")
-            expected_tool_name_in_brackets_lower = f"[{file_search_tool.name.lower()}]" # e.g., "[file_search]"
-            expected_tool_invocation_start_pattern_lower = f"i will use {expected_tool_name_in_brackets_lower}" # e.g., "i will use [file_search]"
+            expected_tool_name_in_brackets_lower = f"[{file_search_tool.name.lower()}]" 
+            expected_tool_invocation_start_pattern_lower = f"i will use {expected_tool_name_in_brackets_lower}"
             
             agent_response_lower = agent_response_phase1.lower()
 
@@ -179,70 +178,76 @@ class Agent:
                 print(f"LOG_CHECK: Agent.run - Found tool marker AND expected tool invocation start pattern.") 
                 
                 try:
-                    query_marker_lower = "to find information about [" # Use lowercase for searching
-                    query_start_index_search = agent_response_lower.find(query_marker_lower)
+                    # More flexible query extraction:
+                    query_intro_marker_lower = "to find information about " # LLM seems to use this phrase
+                    
+                    query_intro_start_index = agent_response_lower.find(query_intro_marker_lower)
 
-                    if query_start_index_search != -1:
-                        # Use original casing for slicing, but index from lowercased search
-                        query_start_index_actual = query_start_index_search + len(query_marker_lower)
-                        # Find the closing bracket in the original cased string
-                        query_end_index_actual = agent_response_phase1.find("]", query_start_index_actual) 
+                    if query_intro_start_index != -1:
+                        # Start extracting query from after the intro marker in the original case string
+                        query_start_actual = query_intro_start_index + len(query_intro_marker_lower)
+                        potential_query = agent_response_phase1[query_start_actual:].strip()
 
-                        if query_end_index_actual != -1:
-                            query_for_tool = agent_response_phase1[query_start_index_actual:query_end_index_actual].strip()
+                        # Clean up the query: remove leading '[' if present, and trailing ']' or '.'
+                        if potential_query.startswith("["):
+                            potential_query = potential_query[1:]
+                        if potential_query.endswith("]"):
+                            potential_query = potential_query[:-1]
+                        if potential_query.endswith("."): # Remove trailing period often added by LLM
+                            potential_query = potential_query[:-1]
+                        
+                        query_for_tool = potential_query.strip()
+
+                        # Re-confirm extracted tool name from the original cased string based on found pattern
+                        tool_name_phrase_search_start = agent_response_lower.find(expected_tool_invocation_start_pattern_lower)
+                        # Get the part after "i will use " which is "[tool_name]"
+                        start_of_bracket_in_original_case = tool_name_phrase_search_start + len("i will use ") # length of "i will use "
+                        end_of_bracket_in_original_case = agent_response_phase1.find("]", start_of_bracket_in_original_case)
+                        
+                        extracted_tool_name = "unknown_tool" # Default
+                        if end_of_bracket_in_original_case != -1:
+                            # Extract from original case string, between the brackets
+                            extracted_tool_name = agent_response_phase1[start_of_bracket_in_original_case + 1 : end_of_bracket_in_original_case].strip()
+
+                        print(f"LOG_CHECK: --- Flexible Query Extraction Details ---") 
+                        print(f"LOG_CHECK: Extracted tool_name: '{extracted_tool_name}'") 
+                        print(f"LOG_CHECK: Extracted query: '{query_for_tool}'")       
+                        print(f"LOG_CHECK: --- End of Flexible Query Extraction Details ---")   
+
+                        if extracted_tool_name.lower() == file_search_tool.name.lower() and query_for_tool:
+                            print(f"LOG_CHECK: Agent.run - Agent plans to use tool: {file_search_tool.name} with query: '{query_for_tool}'") 
+                            tool_output = await file_search_tool.run(query_for_tool)
+                            tool_results_text = f"--- Information retrieved by {file_search_tool.name} for query '{query_for_tool}' ---\n{tool_output}\n--- End of Information ---"
                             
-                            # Re-confirm extracted tool name from the original cased string based on found pattern
-                            tool_name_phrase_search_start = agent_response_lower.find(expected_tool_invocation_start_pattern_lower)
-                            start_of_bracket_in_original_case = tool_name_phrase_search_start + len("i will use ") # length of "i will use " is 11
-                            end_of_bracket_in_original_case = agent_response_phase1.find("]", start_of_bracket_in_original_case)
+                            print(f"LOG_CHECK: Agent.run - Tool output received:\n{tool_output[:200]}...") 
+
+                            final_prompt_messages = messages.copy()
+                            final_prompt_messages.append({"role": "user", "content": tool_results_text}) 
                             
-                            extracted_tool_name = "unknown_tool" # Default
-                            if end_of_bracket_in_original_case != -1:
-                                extracted_tool_name = agent_response_phase1[start_of_bracket_in_original_case + 1 : end_of_bracket_in_original_case].strip()
-
-
-                            print(f"LOG_CHECK: --- Splitter Method Details ---") 
-                            print(f"LOG_CHECK: Extracted tool_name by splitter: '{extracted_tool_name}'") 
-                            print(f"LOG_CHECK: Extracted query by splitter: '{query_for_tool}'")       
-                            print(f"LOG_CHECK: --- End of Splitter Method Details ---")   
-
-                            if extracted_tool_name.lower() == file_search_tool.name.lower() and query_for_tool:
-                                print(f"LOG_CHECK: Agent.run - Agent plans to use tool: {file_search_tool.name} with query: '{query_for_tool}'") 
-                                tool_output = await file_search_tool.run(query_for_tool)
-                                tool_results_text = f"--- Information retrieved by {file_search_tool.name} for query '{query_for_tool}' ---\n{tool_output}\n--- End of Information ---"
-                                
-                                print(f"LOG_CHECK: Agent.run - Tool output received:\n{tool_output[:200]}...") 
-
-                                final_prompt_messages = messages.copy()
-                                final_prompt_messages.append({"role": "user", "content": tool_results_text}) 
-                                
-                                final_instruction = (
-                                    f"The '{file_search_tool.name}' tool provided the following information based on Minaya's documents:\n{tool_results_text}\n\n"
-                                    f"Present this information as your final answer to the original user question: '{user_message}'. "
-                                    f"Ensure your response aligns with your core instructions (persona, tone, and how to handle missing information if the tool indicated so)."
-                                )
-                                final_prompt_messages.append({"role": "system", "content": final_instruction})
-                                
-                                print(f"LOG_CHECK: Agent.run - Attempting second LLM call for final response synthesis.")
-                                response2 = client.chat.completions.create(
-                                    model="gpt-4o",
-                                    messages=final_prompt_messages,
-                                    temperature=0.3,
-                                    max_tokens=700
-                                )
-                                return {"output": response2.choices[0].message.content}
-                            else:
-                                print(f"LOG_CHECK: Agent.run - Debug: Tool name or query extraction failed with splitter. Extracted Tool: '{extracted_tool_name}', Expected Tool: '{file_search_tool.name.lower()}', Query: '{query_for_tool}'") 
-                                return {"output": agent_response_phase1 + "\n\n(Note: Tool name or query was not correctly identified in the plan. Please try rephrasing.)"}
+                            final_instruction = (
+                                f"The '{file_search_tool.name}' tool provided the following information based on Minaya's documents:\n{tool_results_text}\n\n"
+                                f"Present this information as your final answer to the original user question: '{user_message}'. "
+                                f"Ensure your response aligns with your core instructions (persona, tone, and how to handle missing information if the tool indicated so)."
+                            )
+                            final_prompt_messages.append({"role": "system", "content": final_instruction})
+                            
+                            print(f"LOG_CHECK: Agent.run - Attempting second LLM call for final response synthesis.")
+                            response2 = client.chat.completions.create(
+                                model="gpt-4o",
+                                messages=final_prompt_messages,
+                                temperature=0.3,
+                                max_tokens=700
+                            )
+                            return {"output": response2.choices[0].message.content}
                         else:
-                            print(f"LOG_CHECK: Agent.run - Debug: Could not find closing ']' for query in plan: '{agent_response_phase1}'") 
-                            return {"output": agent_response_phase1 + "\n\n(Note: The query part of the plan was not correctly formatted. Please try rephrasing.)"}
+                            print(f"LOG_CHECK: Agent.run - Debug: Tool name or query validity check failed. Extracted Tool: '{extracted_tool_name}', Expected Tool: '{file_search_tool.name.lower()}', Query: '{query_for_tool}'") 
+                            return {"output": agent_response_phase1 + "\n\n(Note: Tool name or query was not correctly identified in the plan. Please try rephrasing.)"}
                     else:
-                        print(f"LOG_CHECK: Agent.run - Debug: Query marker '{query_marker_lower}' not found in plan: '{agent_response_lower}' after finding tool marker and invocation start.") 
-                        return {"output": agent_response_phase1 + "\n\n(Note: The plan to find information was not clearly stated. Please try rephrasing.)"}
+                        print(f"LOG_CHECK: Agent.run - Debug: Query intro marker '{query_intro_marker_lower}' not found in plan: '{agent_response_lower}' after finding tool marker and invocation start.") 
+                        return {"output": agent_response_phase1 + "\n\n(Note: The plan to find information was not clearly stated as expected. Please try rephrasing.)"}
 
                 except Exception as e:
-                    print(f"LOG_CHECK: Agent.run - Error during tool processing (splitter logic): {str(e)}") 
+                    print(f"LOG_CHECK: Agent.run - Error during tool processing (flexible extraction logic): {str(e)}") 
                     return {"output": f"Error during tool processing logic: {str(e)}\nOriginal plan: {agent_response_phase1}"}
             else:
                 print(f"LOG_CHECK: Agent.run - Debug: Marker '{tool_marker.lower()}' or pattern '{expected_tool_invocation_start_pattern_lower}' not found in agent response (lower): '{agent_response_lower}'. Agent may not have planned to use a tool.") 
