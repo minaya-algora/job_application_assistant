@@ -52,21 +52,21 @@ def get_agent_instructions():
 # Function to create agent with selected tools
 def create_research_assistant():
     tools = []
-
-    
     
     if st.session_state.use_web_search:
         tools.append(WebSearchTool()) # Assumes WebSearchTool uses st.secrets["OPENAI_API_KEY"]
         
     if st.session_state.use_file_search:
         # Pass the vector_store_id fetched earlier
+        # Ensure 'current_vector_store_id' is defined in the scope accessible by this function.
+        # It was defined globally in the main.py I provided.
         tools.append(FileSearchTool(
             max_num_results=3,
             vector_store_ids=[current_vector_store_id] if current_vector_store_id else [],
         ))
     
     return Agent(
-        name="Minaya's Assistant"
+        name="Minaya's Assistant",
         instructions=get_agent_instructions(),
         tools=tools,
     )
