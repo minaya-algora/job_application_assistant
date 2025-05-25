@@ -18,6 +18,7 @@ else:
     vector_store_id = os.environ.get("vector_store_id", "")
 
 # Set OpenAI API key globally
+import openai
 openai.api_key = OPENAI_API_KEY
 
 # Initialize session state for chat history if it doesn't exist
