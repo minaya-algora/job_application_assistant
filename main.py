@@ -3,13 +3,22 @@ import os
 import asyncio
 from agents import Agent, Runner, WebSearchTool, FileSearchTool
 from dotenv import load_dotenv
+import openai
 
-# Load environment variables
+# Load environment variables for local development
 load_dotenv(override=True)
 
-# Ensure your OpenAI key is available from .env file
-OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
-vector_store_id = os.environ["vector_store_id"]
+# Get API keys (prioritize Streamlit secrets if available)
+if "OPENAI_API_KEY" in st.secrets:
+    OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
+    vector_store_id = st.secrets.get("vector_store_id", "")
+else:
+    # Fallback to environment variables for local development
+    OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+    vector_store_id = os.environ.get("vector_store_id", "")
+
+# Set OpenAI API key globally
+openai.api_key = OPENAI_API_KEY
 
 # Initialize session state for chat history if it doesn't exist
 if "messages" not in st.session_state:
