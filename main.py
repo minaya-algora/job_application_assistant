@@ -8,6 +8,17 @@ import openai
 # Load environment variables for local development
 load_dotenv(override=True)
 
+# --- TEMPORARY DEBUG SECTION ---
+# This will print to your Streamlit app's UI when deployed.
+# REMEMBER TO REMOVE THIS AFTER DEBUGGING.
+if "OPENAI_API_KEY" in st.secrets:
+    key_from_secrets = st.secrets["OPENAI_API_KEY"]
+    st.write(f"Debug: Key from secrets starts with: {key_from_secrets[:12]} and ends with: {key_from_secrets[-6:]}")
+    st.write(f"Debug: Length of key from secrets: {len(key_from_secrets)}")
+else:
+    st.write("Debug: OPENAI_API_KEY not found in st.secrets!")
+# --- END OF TEMPORARY DEBUG SECTION ---
+
 # Get API keys (prioritize Streamlit secrets if available)
 if "OPENAI_API_KEY" in st.secrets:
     OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
