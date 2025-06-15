@@ -74,7 +74,7 @@ st.sidebar.title("Settings")
 st.sidebar.subheader("Document Search")
 
 file_search_active = st.sidebar.checkbox(
-    "✅ Search Minaya's Professional Documents (CV, LinkedIn, etc.)", 
+    "Search Minaya's Professional Documents (CV, LinkedIn, etc.)", 
     value=st.session_state.use_file_search, 
     key="file_search_toggle"
 )
