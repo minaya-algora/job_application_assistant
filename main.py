@@ -69,6 +69,9 @@ I have direct access to her resume and professional documents, so feel free to a
 
 **Go ahead, put me to the test.**
 """)
+# Use a warning box for the disclaimer to make it visually distinct
+st.warning("*Fair warning: I'm in Beta and sometimes hallucinate. Please take my responses with a grain of salt!*")
+
 # Sidebar controls
 st.sidebar.title("Settings")
 st.sidebar.subheader("Document Search")
