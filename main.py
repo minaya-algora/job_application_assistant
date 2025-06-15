@@ -9,7 +9,7 @@ print("MAIN_PY_LOG: main.py script is starting/re-running.")
 # --- END OF VERY VERY EARLY PRINT ---
 
 # Streamlit UI Configuration - MUST BE THE FIRST STREAMLIT COMMAND
-st.set_page_config(page_title="Minaya's SmarterX Application Assistant", layout="wide")
+st.set_page_config(page_title="Minaya's Application Assistant", layout="wide")
 
 # Load environment variables for local development
 load_dotenv(override=True)
@@ -61,15 +61,18 @@ async def get_research_response(question, history):
     return result.final_output
 
 # Streamlit UI
-st.title("🤖 Minaya's SmarterX Application Assistant")
-st.write("Curious about my career goals, my specific expertise in this or that tool, or how I'd fit into your team? Ask me anything about my experience, approach, or potential contributions. I'll do my best to provide the info you need and help you assess my fit for your organization. Please note I'm in Beta and I sometimes hallucinate. Take my responses with a grain of salt!")
+st.title("🤖 Minaya's Application Assistant")
+st.write("Hi there. I'm here to help you assess Minaya's fit for your organization by giving you the inside scoop on her professional experience and work approach —no fluff, no fuss.
+I have direct access to her resume and professional documents, so feel free to ask me anything. You can start with simple questions like, "What's her experience with Zapier?" or dig deeper with "How would she handle a project that's off the rails?"
+Go ahead, put me to the test.
+Fair warning: I'm in Beta and sometimes hallucinate. Please take my responses with a grain of salt!")
 
 # Sidebar controls
 st.sidebar.title("Settings")
 st.sidebar.subheader("Document Search")
 
 file_search_active = st.sidebar.checkbox(
-    "Enable Search in Minaya's Professional Documents", 
+    "✅ Search Minaya's Professional Documents (CV, LinkedIn, etc.)", 
     value=st.session_state.use_file_search, 
     key="file_search_toggle"
 )
@@ -80,7 +83,7 @@ if file_search_active != st.session_state.use_file_search:
     st.rerun()
 
 st.sidebar.subheader("Conversation")
-if st.sidebar.button("Clear Conversation"):
+if st.sidebar.button("Clear Current Conversation"):
     st.session_state.messages = []
     print("MAIN_PY_LOG: Conversation cleared, rerunning.")
     st.rerun()
