@@ -68,9 +68,9 @@ Hi there. I'm here to help you assess Minaya's fit for your organization by givi
 I have direct access to her resume and professional documents, so feel free to ask me anything. You can start with simple questions like, *"What's her experience with Zapier?"* or dig deeper with *"How would she handle a project that's off the rails?"*
 
 **Go ahead, put me to the test.**
+
+*Fair warning: I'm in Beta and sometimes hallucinate. Please take my responses with a grain of salt!*
 """)
-# Use a warning box for the disclaimer to make it visually distinct
-st.warning("*Fair warning: I'm in Beta and sometimes hallucinate. Please take my responses with a grain of salt!*")
 
 # Sidebar controls
 st.sidebar.title("Settings")
