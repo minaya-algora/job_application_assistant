@@ -62,8 +62,13 @@ async def get_research_response(question, history):
 
 # Streamlit UI
 st.title("🤖 Minaya's Application Assistant")
-st.write("Hi there. I'm here to help you assess Minaya's fit for your organization by giving you the inside scoop on her professional experience and work approach —no fluff, no fuss. I have direct access to her resume and professional documents, so feel free to ask me anything. You can start with simple questions like, "What's her experience with Zapier?" or dig deeper with "How would she handle a project that's off the rails?" Go ahead, put me to the test. Fair warning: I'm in Beta and sometimes hallucinate. Please take my responses with a grain of salt!")
+st.markdown("""
+Hi there. I'm here to help you assess Minaya's fit for your organization by giving you the **inside scoop** on her professional experience and work approach — no fluff, no fuss.
 
+I have direct access to her resume and professional documents, so feel free to ask me anything. You can start with simple questions like, *"What's her experience with Zapier?"* or dig deeper with *"How would she handle a project that's off the rails?"*
+
+**Go ahead, put me to the test.**
+""")
 # Sidebar controls
 st.sidebar.title("Settings")
 st.sidebar.subheader("Document Search")
