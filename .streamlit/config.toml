@@ -1,39 +1,7 @@
 [theme]
-# Base theme
 base = "dark"
-
-# Colors
-primaryColor = "#FBFF47"  # Safety Yellow as accent
-backgroundColor = "#101113"  # Off-black as main background
-secondaryBackgroundColor = "#1E1D20"  # Dark Gray
-textColor = "#FFFFFF"  # White text
-
-# Typography
+primaryColor = "#FBFF47"
+backgroundColor = "#101113"
+secondaryBackgroundColor = "#1E1D20"
+textColor = "#FFFFFF"
 font = "sans-serif"
-
-# UI element styling
-[theme.button]
-backgroundColor = "#101113"
-textColor = "#FBFF47"
-borderColor = "#FBFF47"
-
-[theme.sidebar]
-backgroundColor = "#1E1D20"
-textColor = "#FFFFFF"
-
-[theme.textInput]
-backgroundColor = "#101113"
-textColor = "#FFFFFF"
-borderColor = "#1E1D20"
-
-# Element styling
-[ui]
-hideSidebarNav = false
-
-[browser]
-gatherUsageStats = false
-
-# Page layout
-[server]
-enableStaticServing = true
-
