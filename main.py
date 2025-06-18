@@ -11,6 +11,20 @@ print("MAIN_PY_LOG: main.py script is starting/re-running.")
 # Streamlit UI Configuration - MUST BE THE FIRST STREAMLIT COMMAND
 st.set_page_config(page_title="Minaya's Application Assistant", layout="wide")
 
+# Debug code to check if config file is being found
+try:
+    # This will display the current theme settings Streamlit is using
+    theme_data = st.get_option("theme")
+    st.sidebar.write("Current Theme Settings:")
+    st.sidebar.json(theme_data)
+    
+    # Check if the config file exists
+    config_path = os.path.join(".streamlit", "config.toml")
+    file_exists = os.path.exists(config_path)
+    st.sidebar.write(f"Config file exists: {file_exists}")
+except Exception as e:
+    st.sidebar.error(f"Error checking theme: {e}")
+
 # Load environment variables for local development
 load_dotenv(override=True)
 print("MAIN_PY_LOG: dotenv loaded.")
