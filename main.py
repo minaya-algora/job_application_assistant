@@ -11,41 +11,6 @@ print("MAIN_PY_LOG: main.py script is starting/re-running.")
 # Streamlit UI Configuration - MUST BE THE FIRST STREAMLIT COMMAND
 st.set_page_config(page_title="Minaya's Application Assistant", layout="wide")
 
-# ADD DEBUG ELEMENT HERE
-st.markdown("""
-<style>
-    /* Direct CSS styling for Zoomo branding */
-    .stApp {
-        background-color: #101113 !important;
-    }
-    .stButton>button {
-        background-color: #101113 !important;
-        color: #FBFF47 !important;
-        border: 1px solid #FBFF47 !important;
-        text-transform: uppercase;
-    }
-    .stSidebar .stButton>button {
-        background-color: #101113 !important;
-        color: #FBFF47 !important;
-    }
-    div[data-testid="stText"], div[data-testid="stMarkdown"] p {
-        color: white !important;
-    }
-    [data-testid="stSidebar"] {
-        background-color: #1E1D20 !important;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# Add debug info
-with st.sidebar:
-    st.markdown("### Theme Debug")
-    st.markdown("**This app should be using Zoomo branding:**")
-    st.markdown("- Dark background (#101113)")
-    st.markdown("- Yellow accents (#FBFF47)")
-    st.markdown("- White text")
-    st.button("Test Button Styling")
-
 # Load environment variables for local development
 load_dotenv(override=True)
 print("MAIN_PY_LOG: dotenv loaded.")
